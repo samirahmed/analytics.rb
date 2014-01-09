@@ -3,6 +3,7 @@ class Analytics
     require  'net/http'
     require  'socket'
     require  'uri'
+    require  'securerandom'
 
     attr_accessor :debug_mode, :raise_errors, :app_name, :app_version, :client_id, :tracking_id, :protocol_version, :anonymize_ip
 
@@ -18,7 +19,7 @@ class Analytics
       @debug = false
 
       # Generate a random client Id
-      @client_id = Random.new(Socket.gethostname.to_i).rand(2**31..2**32).to_s
+      @client_id = SecureRandom.uuid()
       @protocol_version = '1'
 
       # Get the remainder of values
