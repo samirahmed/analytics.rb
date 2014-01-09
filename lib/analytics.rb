@@ -1,16 +1,15 @@
-module Analytics
-  class Measure
+class Analytics 
+   class << self
     require  'net/http'
     require  'socket'
     require  'uri'
 
     attr_accessor :debug_mode, :raise_errors, :app_name, :app_version, :client_id, :tracking_id, :protocol_version, :anonymize_ip
 
-    def initialize(tid, opts = {})
+    def configure(tid, opts = {})
      
       # set tracking id, ensure is not nil
       @tracking_id = tid
-      return nil if tid.nil? && (tid =~ /UA-[\w]{4,8}-\w{1,2}/)
 
       # by default ignore errors
       @ignore_errors = false
@@ -27,6 +26,8 @@ module Analytics
         return unless self.respond_to?(key.to_s+"=")
         self.send(key.to_s+"=",value)
       end
+
+      globals
     end
 
     def debug_print( msg )
@@ -128,6 +129,8 @@ module Analytics
    
     def execute(opts)
       
+      return false if @tracking_id.nil? && !(@tracking_id =~ /UA-\w{4,8}-\w{1,2}/)
+      
       params = globals
       params.merge! opts
       params = transform( params, GLOBAL_OPT )
@@ -162,4 +165,3 @@ module Analytics
     end
   end
 end
-
