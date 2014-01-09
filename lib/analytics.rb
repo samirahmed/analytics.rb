@@ -10,7 +10,7 @@ module Analytics
      
       # set tracking id, ensure is not nil
       @tracking_id = tid
-      return nil if tid.nil? && (tid =~ /UA-[\w]{4}-\w/)
+      return nil if tid.nil? && (tid =~ /UA-[\w]{4,8}-\w{1,2}/)
 
       # by default ignore errors
       @ignore_errors = false
@@ -20,7 +20,8 @@ module Analytics
 
       # Generate a random client Id
       @client_id = Random.new(Socket.gethostname.to_i).rand(2**31..2**32).to_s
-     
+      @protocol_version = '1'
+
       # Get the remainder of values
       opts.each do |key,value|
         return unless self.respond_to?(key.to_s+"=")
@@ -29,11 +30,11 @@ module Analytics
     end
 
     def debug_print( msg )
-      (print "[#{_class}]=> #{msg}") if @debug_mode
+      (puts msg) if @debug_mode
     end
 
     [:event, :exception].each do |method|
-      define_method(method) do |args|
+      define_method(method) do |*args|
         begin
           self.class.send("#{method}!".to_sym, *args)
         rescue
@@ -54,7 +55,7 @@ module Analytics
      execute opts.merge({
       description:description,
       fatal?:fatal,
-      hit_type:"event"
+      hit_type:"exception"
      })
     end
     
@@ -69,7 +70,7 @@ module Analytics
     GLOBAL_OPT = {
       :session => {key:"sc", nominal:["start", "end"]},
       :anonymize_ip => {key:"aip", value:"1"},
-      :app_name => {key:"a", byte:100},
+      :app_name => {key:"an", byte:100},
       :app_version => {key:"av", byte:100},
       :non_interaction => {key:"ni", value:"1"},
       :client_id => {key:"cid", required:true},
@@ -128,31 +129,33 @@ module Analytics
     def execute(opts)
       
       params = globals
-      params.merge opts
+      params.merge! opts
       params = transform( params, GLOBAL_OPT )
 
       case opts[:hit_type]
         when "event"
-          params.merge transform(opts, EVENT_OPT)
+          params.merge! transform(opts, EVENT_OPT)
         when "exception"
-          params.merge transform(opts, EXCEPTION_OPT)
+          params.merge! transform(opts, EXCEPTION_OPT)
       end
       
-      thread do
+      debug_print params.inspect 
+      
+      #Thread.new do
         
-        _uri = URI(Analytics)
+        _uri = URI(ENDPOINT)
         _http = Net::HTTP.new(_uri.host, _uri.port)
         
         _uri.query = URI.encode_www_form( params )
-        _req = Net::HTTP::Get.new(uri.request_uri)
+        _req = Net::HTTP::Get.new(_uri.request_uri)
 
         # todo add headers here ...
-        
+        debug_print _uri.to_s 
         _resp = _http.request(_req)
 
         debug_print _resp.code
         _resp.each{ |name, value| debug_print "#{name}:#{value}" }
-      end
+      #end
 
       true
 
