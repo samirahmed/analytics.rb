@@ -1,4 +1,3 @@
-
 require_relative 'helper_spec'
 
 describe Analytics do

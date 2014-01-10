@@ -14,17 +14,20 @@ class Analytics
                   :anonymize_ip, :session, :app_version                    # G.A Optional
 
     def configure(tid, appname,  opts = {})
-
-      @tracking_id = tid
-      @app_name = appname
+     
+      # clear existing configuration and reset
+      instance_variables.each{ |v| instance_variable_set(v,nil) }
 
       # set defaults
       @raise = false
       @debug = false
       @client_id = SecureRandom.uuid()
       @protocol_version = '1'
-
-      # Get the remainder of values
+      
+      # set tid and app name explicitly and all remaining opts
+      @tracking_id = tid
+      @app_name = appname
+      
       opts.each do |key,value|
         return unless self.respond_to?(key.to_s+"=")
         self.send(key.to_s+"=",value)
@@ -37,7 +40,9 @@ class Analytics
 
     [:event, :exception].each do |method|
       
-      define_method("#{method}!"){ |opts| execute( opts.merge hit_type: method.to_s )}
+      define_method("#{method}!") do |opts = {}| 
+        execute( opts.merge hit_type: method.to_s )
+      end
 
       define_method(method) do |opts|
         begin
@@ -61,7 +66,7 @@ class Analytics
       :app_version =>      { key: 'av',  byte: 100 },
       :client_id =>        { key: 'cid', required: true },
       :non_interaction =>  { key: 'ni',  value: '1' },
-      :protocol_version => { key: 'v',   required: true },
+      :protocol_version => { key: 'v',   value: '1', required: true },
       :session =>          { key: 'sc',  nominal: ['start', 'end'] },
       :tracking_id =>      { key: 'tid', required: true },
     }
@@ -88,7 +93,7 @@ class Analytics
       _key = opt[:key]
 
       # Get option default value, or user specified value
-      _value = opt[:value] || value
+      _value = value || ( opt[:value] if opt[:required] )
      
       result = {}
 
@@ -132,11 +137,10 @@ class Analytics
         uri = URI::HTTP.build({
           :host => "www.google-analytics.com",
           :path => "/collect",
-          :query => query.map{|k,v| "#{k}=#{URI.escape(v)}"}.join('&')
+          :query => Hash[query.sort].map{|k,v| "#{k}=#{URI.escape(v)}"}.join('&')
         })
 
         trace uri.to_s 
-        
         resp = Net::HTTP.get_response uri
         
         trace resp.code
