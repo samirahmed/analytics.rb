@@ -6,6 +6,9 @@ class Analytics
     require  'open-uri'
     require  'securerandom'
 
+    class AnalyticsError < StandardError 
+    end
+
     attr_accessor :debug, :raising,                                        # Gem Settings
                   :app_name, :client_id, :tracking_id, :protocol_version,  # G.A Required
                   :anonymize_ip, :session, :app_version                    # G.A Optional
@@ -34,9 +37,7 @@ class Analytics
 
     [:event, :exception].each do |method|
       
-      define_method("#{method}!") do |opts|
-        execute( opts.merge :hit_type => method.to_s )
-      end
+      define_method("#{method}!"){ |opts| execute( opts.merge hit_type: method.to_s )}
 
       define_method(method) do |opts|
         begin
@@ -152,7 +153,7 @@ class Analytics
 
     def err msg 
       trace msg 
-      raise msg unless @raise
+      fail AnalyticsError, msg unless @raise
     end
 
   end
