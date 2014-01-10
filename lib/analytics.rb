@@ -46,12 +46,11 @@ class Analytics
 
       define_method(method) do |opts|
         begin
-          self.send("#{method}!", *args)
+          self.send("#{method}!", opts)
         rescue Exception => e
-          trace e.message, e.bactrace.inspect
+          trace e.message, e.backtrace.inspect
         end
       end
-
     end
     
     def globals
@@ -81,7 +80,7 @@ class Analytics
       :action =>   { key: 'ea',  byte: 500, required: true },
       :category => { key: 'ec',  byte: 150, required: true },
       :hit_type => { key: 't',   value: 'event'  },
-      :label =>    { key: 'ev',  byte: 500 },
+      :label =>    { key: 'el',  byte: 500 },
       :value =>    { key: 'ev' }
     }
 
