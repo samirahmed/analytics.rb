@@ -96,7 +96,7 @@ class Analytics
       elsif opt[:byte] && _value.bytesize > opt[:byte]
         err "#{_value} is larger than #{opt[:byte]} bytes"
       elsif opt[:nominal] && !opt[:nominal].include?(_value) 
-        err "#{_key} must equal #{opt[:nominal].inspect} - not #{_nominal}"
+        err "#{_key} must be on of #{opt[:nominal].inspect} - not #{_nominal}"
       elsif _value
         result = {_key => _value}
       end
@@ -119,24 +119,28 @@ class Analytics
 
       case opts[:hit_type]
         when "event"
-          query.merge! transform(opts, EVENT_OPT)
+          query.merge! transform( opts, EVENT_OPT)
         when "exception"
-          query.merge! transform(opts, EXCEPTION_OPT)
+          query.merge! transform( opts, EXCEPTION_OPT)
       end
       
       trace query.inspect 
       
       thread = Thread.new do
         
-        _uri = URI::HTTP.build({
+        uri = URI::HTTP.build({
           :host => "www.google-analytics.com",
           :path => "/collect",
           :query => query.map{|k,v| "#{k}=#{URI.escape(v)}"}.join('&')
         })
 
-        trace _uri.to_s 
-        _resp = Net::HTTP.get_response _uri
-        trace _resp.code
+        trace uri.to_s 
+        
+        resp = Net::HTTP.get_response uri
+        
+        trace resp.code
+        
+        Thread.current[:response] = resp 
       end
       
       thread
