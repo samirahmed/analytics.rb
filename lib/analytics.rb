@@ -1,6 +1,7 @@
 class Analytics 
    class << self
     require  'net/http'
+    require  'pp'
     require  'socket'
     require  'open-uri'
     require  'securerandom'
@@ -11,17 +12,12 @@ class Analytics
 
     def configure(tid, appname,  opts = {})
 
-      # set tracking id and appname, required!
       @tracking_id = tid
       @app_name = appname
 
-      # by default ignore errors
+      # set defaults
       @raise = false
-      
-      # configure settings
-      @debug = @debug
-
-      # Generate a random client Id
+      @debug = false
       @client_id = SecureRandom.uuid()
       @protocol_version = '1'
 
@@ -32,71 +28,55 @@ class Analytics
       end
       
       # Return the configuration hash
-      globals
+      globals 
 
     end
 
     [:event, :exception].each do |method|
-      define_method(method) do |*args|
+      
+      define_method("#{method}!") do |opts|
+        execute( opts.merge :hit_type => method.to_s )
+      end
+
+      define_method(method) do |opts|
         begin
-          self.send("#{method}!".to_sym, *args)
-          puts (Time.now-start).to_f * 1000.0
+          self.send("#{method}!", *args)
         rescue Exception => e
-          trace e.message
-          trace e.backtrace.inspect
-          nil
+          trace e.message, e.bactrace.inspect
         end
       end
-    end
 
-    def event!( category, action, opts = {})
-      puts category
-      puts action
-      puts opts.inspect
-      execute opts.merge({ 
-        category:category, 
-        action:action,
-        hit_type:"event"
-      })
     end
-
-    def exception!( desc , fatal = false, opts = {})
-     execute opts.merge({
-      description:description,
-      fatal?:fatal,
-      hit_type:"exception"
-     })
-    end
-    
-    # private
     
     def globals
       Hash[instance_variables.map{ |name| [name[1..-1].to_sym, instance_variable_get(name)]}]
     end
 
+    private
+
     GLOBAL_OPT = {
-      :session => {key:"sc", nominal:["start", "end"]},
-      :anonymize_ip => {key:"aip", value:"1"},
-      :app_name => {key:"an", byte:100, required:true},
-      :app_version => {key:"av", byte:100},
-      :non_interaction => {key:"ni", value:"1"},
-      :client_id => {key:"cid", required:true},
-      :tracking_id => {key:"tid", required:true},
-      :protocol_version => {key:"v", required:true},
+      :anonymize_ip =>     { key: 'aip', value: '1' },
+      :app_name =>         { key: 'an',  byte: 100, required: true },
+      :app_version =>      { key: 'av',  byte: 100 },
+      :client_id =>        { key: 'cid', required: true },
+      :non_interaction =>  { key: 'ni',  value: '1' },
+      :protocol_version => { key: 'v',   required: true },
+      :session =>          { key: 'sc',  nominal: ['start', 'end'] },
+      :tracking_id =>      { key: 'tid', required: true },
     }
 
     EXCEPTION_OPT = {
-      :exception => {key:"exd", byte:150, required:true},
-      :fatal? => {key:"exf", value:"1"},
-      :hit_type => {key:"t", value:"exception"}
+      :exception => { key: 'exd', byte: 150, required: true },
+      :fatal? =>    { key: 'exf', value: '1' },
+      :hit_type =>  { key: 't',   value: 'exception' }
     }
 
     EVENT_OPT = {
-      :hit_type => {key:"t", value:"event"},
-      :label => {key:"ev",  byte:500},
-      :action => {key:"ea", byte:500, required:true},
-      :category => {key:"ec", byte:150, required:true},
-      :value => {key:"ev"}
+      :action =>   { key: 'ea',  byte: 500, required: true },
+      :category => { key: 'ec',  byte: 150, required: true },
+      :hit_type => { key: 't',   value: 'event'  },
+      :label =>    { key: 'ev',  byte: 500 },
+      :value =>    { key: 'ev' }
     }
 
     def extract( opt, value)
@@ -125,8 +105,8 @@ class Analytics
     end
     
     def transform(original, options)
-      original.inject({}) do |result, (key,value)|
-        result.merge(extract options[key] , value )
+      original.inject({}) do |result, (key, value)|
+        result.merge!(extract options[key] , value )
       end
     end
    
@@ -134,8 +114,7 @@ class Analytics
       
       err "Invalid TrackingId" unless @tracking_id && (@tracking_id =~ /UA-\w{4,8}-\w{1,2}/)
 
-      query = globals
-      query.merge! opts
+      query = globals.merge opts
       query = transform( query, GLOBAL_OPT )
 
       case opts[:hit_type]
@@ -156,17 +135,15 @@ class Analytics
         })
 
         trace _uri.to_s 
-        _resp = Net::HTTP.get_response(_uri)
-
+        _resp = Net::HTTP.get_response _uri
         trace _resp.code
-        _resp.each{ |name, value| trace "#{name}:#{value}" }
       end
       
       thread
     end
 
-    def trace msg
-      puts(msg) if @debug
+    def trace *msg
+      msg.each{|line| pp line } if @debug
     end
 
     def err msg 
