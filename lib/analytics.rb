@@ -136,7 +136,7 @@ class Analytics
         uri = URI::HTTP.build({
           :host => "www.google-analytics.com",
           :path => "/collect",
-          :query => Hash[query.sort].map{|k,v| "#{k}=#{URI.escape(v)}"}.join('&')
+          :query => Hash[query.sort].map{|k,v| "#{k}=#{URI.escape(v.to_s)}"}.join('&')
         })
 
         trace uri.to_s 
