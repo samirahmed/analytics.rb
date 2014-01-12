@@ -44,7 +44,7 @@ class Analytics
         execute( opts.merge hit_type: method.to_s )
       end
 
-      define_method(method) do |opts|
+      define_method(method) do |opts = {}|
         begin
           self.send("#{method}!", opts)
         rescue Exception => e
@@ -71,8 +71,8 @@ class Analytics
     }
 
     EXCEPTION_OPT = {
-      :exception => { key: 'exd', byte: 150, required: true },
-      :fatal? =>    { key: 'exf', value: '1' },
+      :description => { key: 'exd', byte: 150 },
+      :fatal? =>    { key: 'exf', value: '1' , binary: true},
       :hit_type =>  { key: 't',   value: 'exception' }
     }
 
@@ -91,9 +91,16 @@ class Analytics
       # Get the option key
       _key = opt[:key]
 
-      # Get option default value, or user specified value
-      _value = value || ( opt[:value] if opt[:required] )
+      # Check if binary parameter
+      if opt[:binary] && value
+          return {_key =>  '1' }
+      elsif opt[:binary]
+          return {}
+      end
      
+      # parse non binary parameter
+      _value = value || ( opt[:value] if opt[:required] )
+
       result = {}
 
       if _value.nil?
