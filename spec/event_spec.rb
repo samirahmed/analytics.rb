@@ -35,4 +35,17 @@ describe Analytics do
     validate_required_params params, 'event'
     non_required_params(params).should eql [:ec]
   end
+
+  it 'should not allow invalid category, action or label values' do
+    Analytics.raising = true
+    
+    expect{ Analytics.event! category: "A"*151 }.to raise_error(Analytics::AnalyticsError)
+    Analytics.event(category: "A"*151).should be_nil
+
+    expect{ Analytics.event! action: "A"*501 }.to raise_error(Analytics::AnalyticsError)
+    Analytics.event(action: "A"*501).should be_nil
+
+    expect{ Analytics.event! label: "A"*501 }.to raise_error(Analytics::AnalyticsError)
+    Analytics.event(label: "A"*5010).should be_nil
+  end
 end

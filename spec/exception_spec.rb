@@ -32,5 +32,14 @@ describe Analytics do
      params[:exf].should eql '1'
 
   end
+  
+  it 'should not invalid value for description' do
+    
+    Analytics.raising = true
+    
+    expect{ Analytics.exception! description: "A"*501 }.to raise_error(Analytics::AnalyticsError)
+    Analytics.exception( description: "A"*501 ).should be_nil
+  
+  end
 
 end

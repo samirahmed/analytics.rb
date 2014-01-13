@@ -1,13 +1,11 @@
 class Analytics 
-   class << self
+  
+  class << self
     require  'net/http'
     require  'pp'
     require  'socket'
     require  'open-uri'
     require  'securerandom'
-
-    class AnalyticsError < StandardError 
-    end
 
     attr_accessor :debug, :raising,                                        # Gem Settings
                   :app_name, :client_id, :tracking_id, :protocol_version,  # G.A Required
@@ -19,7 +17,7 @@ class Analytics
       instance_variables.each{ |v| instance_variable_set(v,nil) }
 
       # set defaults
-      @raise = false
+      @raising = false
       @debug = false
       @client_id = SecureRandom.uuid()
       @protocol_version = '1'
@@ -163,8 +161,11 @@ class Analytics
 
     def err msg 
       trace msg 
-      fail AnalyticsError, msg unless @raise
+      raise AnalyticsError, msg if @raising
     end
 
   end
+  
+  class AnalyticsError < StandardError; end
+
 end
