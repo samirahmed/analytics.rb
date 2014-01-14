@@ -58,12 +58,20 @@ The event method returns a type 'Thread' that is executing the fire and forget r
 In this examlpe we log an event and wait for execution to complete
 
 ```ruby
-thread = Analytics.event category: "Parameter", label: "--all"  # capture fire and forget thread
-thread.nil?                                                     # => false, if it is nil there was an error
-thread.status                                                   # => sleep
-thread.join                                                     # block until thread is complete
+thread = Analytics.event category: "Parameter", label: "--all"  
+# capture fire and forget thread
 
-resp = thread[:response]                                        # Net::HTTP::Response object
+thread.nil?                                                     
+# => false, if it is nil there was an error
+
+thread.status                                                   
+# => sleep | The thread is most likely sleeping since it is in IO
+
+thread.join                                                     
+# block and wait until thread is complete
+
+resp = thread[:response]                                        
+# Net::HTTP::Response object
 ```
 
 See the [GA event reference](https://support.google.com/analytics/answer/1033068) regarding the different options.
@@ -122,10 +130,12 @@ Client Id's are UUIDs that must be sent with every request. Currently a random U
 You can start and stop sessions by logging with `:session` parameter
 
 ```ruby
-# debug mode enable ... prints to console
-Analytics.event label: "Program start", session: 'start'  # starts session for this client id
+# starts session for this client id
+Analytics.event label: "Program start", session: 'start'  
 
-sleep 10                                                  # wait for 10 seconds ... 
+# wait for 10 seconds ... 
+sleep 10                                                  
 
-Analytics.exception description: "Uh-Oh", session: 'end'     # terminate the session for this client Id
+# terminate the session for this client Id
+Analytics.exception description: "Uh-Oh", session: 'end'     
 ```
